@@ -42,3 +42,21 @@ export const fetchSuggestedReply = async (chatRoomId: string): Promise<string> =
         throw error;
     }
 };
+/**
+ * メッセージを削除する関数
+ * @param chatRoomId - チャットルームのID
+ * @param messageId - 削除するメッセージのID
+ */
+export const deleteMessage = async (chatRoomId: number, messageId: number): Promise<void> => {
+    try {
+        const response = await api.delete(`/chat_rooms/${chatRoomId}/messages/${messageId}`, {
+            headers: {
+                'Accept': 'application/json',
+            },
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Error deleting message:', error);
+        throw error;
+    }
+};

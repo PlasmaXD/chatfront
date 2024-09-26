@@ -1,14 +1,11 @@
-// src/components/ChatWindow.tsx
-
 import React, { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { fetchMessages, addMessage, removeMessage as deleteMessage } from '../store/messagesSlice';
 import { RootState, AppDispatch } from '../store';
-import { sendMessage, deleteMessage as apiDeleteMessage, fetchSuggestedReply } from '@/services/messageService'; // fetchSuggestedReplyをインポート
+import { sendMessage, deleteMessage as apiDeleteMessage, fetchSuggestedReply } from '@/services/messageService';
 import { Box, Input, Button, VStack, Text, IconButton, useToast } from '@chakra-ui/react';
 import { Message } from '../types';
 import { DeleteIcon } from '@chakra-ui/icons';
-import { createConsumer } from '@rails/actioncable'; // ActionCableをインポート
 
 const ChatWindow: React.FC = () => {
     const dispatch = useDispatch<AppDispatch>();
@@ -18,36 +15,11 @@ const ChatWindow: React.FC = () => {
     const currentChatRoom = useSelector((state: RootState) => state.chatRooms.currentChatRoom);
     const currentUser = useSelector((state: RootState) => state.users.currentUser);
     const [messageContent, setMessageContent] = useState('');
-    const [suggestedReply, setSuggestedReply] = useState<string | null>(null);  // 推奨返信の状態を管理
+    const [suggestedReply, setSuggestedReply] = useState<string | null>(null);
 
     useEffect(() => {
         if (currentChatRoom) {
             dispatch(fetchMessages(currentChatRoom.id));
-        }
-    }, [currentChatRoom, dispatch]);
-
-    // ActionCableを使ってリアルタイムで推奨返信を受け取る処理
-    useEffect(() => {
-        if (currentChatRoom) {
-            // メッセージをフェッチして表示
-            dispatch(fetchMessages(currentChatRoom.id));
-
-            // WebSocket (ActionCable) の購読
-            const cable = createConsumer('ws://localhost:3000/cable'); // WebSocket URLを指定
-            const channel = cable.subscriptions.create(
-                { channel: 'ChatRoomsChannel', chat_room_id: currentChatRoom.id },
-                {
-                    received(data) {
-                        if (data.suggested_reply) {
-                            setSuggestedReply(data.suggested_reply);  // 推奨返信を状態にセット
-                        }
-                    }
-                }
-            );
-
-            return () => {
-                channel.unsubscribe();
-            };
         }
     }, [currentChatRoom, dispatch]);
 
@@ -57,10 +29,6 @@ const ChatWindow: React.FC = () => {
             try {
                 await sendMessage({ content: messageContent, chatRoomId: currentChatRoom.id });
                 setMessageContent('');
-
-                // メッセージ送信後に推奨返信を取得
-                const reply = await fetchSuggestedReply(currentChatRoom.id.toString());
-                setSuggestedReply(reply);
             } catch (error) {
                 console.error('Error sending message:', error);
                 toast({
@@ -76,7 +44,13 @@ const ChatWindow: React.FC = () => {
     const handleDelete = async (messageId: number) => {
         if (currentChatRoom) {
             try {
-                await apiDeleteMessage(currentChatRoom.id, messageId);
+                await deleteMessage(currentChatRoom.id, messageId);
+                toast({
+                    title: 'メッセージが削除されました。',
+                    status: 'success',
+                    duration: 5000,
+                    isClosable: true,
+                });
             } catch (error) {
                 console.error('Error deleting message:', error);
                 toast({
@@ -88,6 +62,28 @@ const ChatWindow: React.FC = () => {
             }
         }
     };
+
+
+    // 新たなメッセージが追加された時の処理
+    useEffect(() => {
+        const latestMessage = messages[messages.length - 1];
+
+        // 最新メッセージが自分のものではなく、相手から送信された場合のみ推奨返信を生成
+        if (latestMessage && latestMessage.user.id !== currentUser?.id) {
+            // 推奨返信を取得
+            fetchSuggestedReply(currentChatRoom?.id.toString() || '')
+                .then(reply => setSuggestedReply(reply))
+                .catch(error => {
+                    console.error('Error fetching suggested reply:', error);
+                    toast({
+                        title: '推奨返信の取得に失敗しました。',
+                        status: 'error',
+                        duration: 5000,
+                        isClosable: true,
+                    });
+                });
+        }
+    }, [messages, currentUser, currentChatRoom, toast]);
 
     if (!currentChatRoom) {
         return <div>チャットルームを選択してください</div>;
