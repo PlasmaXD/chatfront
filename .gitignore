@@ -34,3 +34,5 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+# .gitignore
+/cryptic-pipe-435706-n0-e11d64723857.json
