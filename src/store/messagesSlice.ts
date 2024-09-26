@@ -1,7 +1,6 @@
-// store/messagesSlice.ts
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import api from '@/services/api';
-import { Message } from '../../types';
+import { Message } from '../types';
 
 export const fetchMessages = createAsyncThunk('messages/fetchMessages', async (chatRoomId: number) => {
     const response = await api.get<Message[]>(`/chat_rooms/${chatRoomId}/messages`);
@@ -20,11 +19,11 @@ const messagesSlice = createSlice({
     name: 'messages',
     initialState,
     reducers: {
-        addMessage(state, action: { payload: Message }) {
+        addMessage(state, action) {
             state.list.push(action.payload);
         },
-        removeMessage(state, action: { payload: number }) {
-            state.list = state.list.filter(msg => msg.id !== action.payload);
+        removeMessage(state, action) {
+            state.list = state.list.filter(message => message.id !== action.payload);
         },
     },
     extraReducers: (builder) => {

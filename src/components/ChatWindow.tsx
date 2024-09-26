@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { fetchMessages, addMessage, removeMessage as deleteMessage } from '../store/messagesSlice';
+import { fetchMessages, addMessage, removeMessage as deleteMessageFromState } from '../store/messagesSlice';
 import { RootState, AppDispatch } from '../store';
-import { sendMessage, deleteMessage as apiDeleteMessage, fetchSuggestedReply } from '@/services/messageService';
-import { Box, Input, Button, VStack, Text, IconButton, useToast } from '@chakra-ui/react';
+import { sendMessage, deleteMessage, fetchSuggestedReply } from '@/services/messageService'; // ここで deleteMessage をインポート
+import { Box, Input, Button, VStack, Text, IconButton, useToast, Select } from '@chakra-ui/react';
 import { Message } from '../types';
 import { DeleteIcon } from '@chakra-ui/icons';
 
@@ -16,6 +16,7 @@ const ChatWindow: React.FC = () => {
     const currentUser = useSelector((state: RootState) => state.users.currentUser);
     const [messageContent, setMessageContent] = useState('');
     const [suggestedReply, setSuggestedReply] = useState<string | null>(null);
+    const [messageLimit, setMessageLimit] = useState(1); // ユーザーが指定するメッセージ数
 
     useEffect(() => {
         if (currentChatRoom) {
@@ -45,6 +46,7 @@ const ChatWindow: React.FC = () => {
         if (currentChatRoom) {
             try {
                 await deleteMessage(currentChatRoom.id, messageId);
+                dispatch(deleteMessageFromState(messageId)); // ローカルの状態からメッセージを削除
                 toast({
                     title: 'メッセージが削除されました。',
                     status: 'success',
@@ -63,7 +65,6 @@ const ChatWindow: React.FC = () => {
         }
     };
 
-
     // 新たなメッセージが追加された時の処理
     useEffect(() => {
         const latestMessage = messages[messages.length - 1];
@@ -71,7 +72,7 @@ const ChatWindow: React.FC = () => {
         // 最新メッセージが自分のものではなく、相手から送信された場合のみ推奨返信を生成
         if (latestMessage && latestMessage.user.id !== currentUser?.id) {
             // 推奨返信を取得
-            fetchSuggestedReply(currentChatRoom?.id.toString() || '')
+            fetchSuggestedReply(currentChatRoom?.id.toString() || '', messageLimit)
                 .then(reply => setSuggestedReply(reply))
                 .catch(error => {
                     console.error('Error fetching suggested reply:', error);
@@ -83,7 +84,7 @@ const ChatWindow: React.FC = () => {
                     });
                 });
         }
-    }, [messages, currentUser, currentChatRoom, toast]);
+    }, [messages, currentUser, currentChatRoom, messageLimit, toast]);
 
     if (!currentChatRoom) {
         return <div>チャットルームを選択してください</div>;
@@ -94,6 +95,18 @@ const ChatWindow: React.FC = () => {
             <Text fontSize="xl" mb={4}>
                 {currentChatRoom?.name}
             </Text>
+
+            {/* ユーザーが何個前までのメッセージを使用するか選択できるドロップダウン */}
+            <Box mb={4}>
+                <Text fontWeight="bold">何個前までのメッセージをレコメンドに使用するか選択:</Text>
+                <Select value={messageLimit} onChange={(e) => setMessageLimit(parseInt(e.target.value))}>
+                    <option value={1}>1個前</option>
+                    <option value={3}>3個前</option>
+                    <option value={5}>5個前</option>
+                    <option value={10}>10個前</option>
+                </Select>
+            </Box>
+
             <VStack align="start" spacing={2} mb={4}>
                 {messages.map((msg) => (
                     <Box key={msg.id} p={2} bg="gray.100" borderRadius="md" width="100%" position="relative">
@@ -114,11 +127,11 @@ const ChatWindow: React.FC = () => {
                 ))}
             </VStack>
 
-            {/* 推奨返信を表示 */}
+
             {suggestedReply && (
                 <Box mt={4} p={3} bg="blue.50" borderRadius="md">
                     <Text fontWeight="bold">おすすめの返答:</Text>
-                    <Text>{suggestedReply}</Text>
+                    <Text>{typeof suggestedReply === 'string' ? suggestedReply : suggestedReply.suggested_reply}</Text>
                 </Box>
             )}
 

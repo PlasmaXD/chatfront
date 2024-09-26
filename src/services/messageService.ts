@@ -29,19 +29,33 @@ export const sendMessage = async (messageData: { content: string; chatRoomId: nu
  * @param chatRoomId - チャットルームのID
  * @returns 推奨される返答の文字列
  */
-export const fetchSuggestedReply = async (chatRoomId: string): Promise<string> => {
+// export const fetchSuggestedReply = async (chatRoomId: string): Promise<string> => {
+//     try {
+//         const response = await api.get<SuggestedReplyResponse>(`/chat_rooms/${chatRoomId}/messages/suggest_reply`);
+//         if (response.data.suggested_reply) {
+//             return response.data.suggested_reply;
+//         } else {
+//             throw new Error(response.data.error || '推奨返答の取得に失敗しました。');
+//         }
+//     } catch (error) {
+//         console.error('Error fetching suggested reply:', error);
+//         throw error;
+//     }
+// };
+
+// messageService.ts
+export const fetchSuggestedReply = async (chatRoomId: number, limit: number) => {
     try {
-        const response = await api.get<SuggestedReplyResponse>(`/chat_rooms/${chatRoomId}/messages/suggest_reply`);
-        if (response.data.suggested_reply) {
-            return response.data.suggested_reply;
-        } else {
-            throw new Error(response.data.error || '推奨返答の取得に失敗しました。');
-        }
+        const response = await api.get(`/chat_rooms/${chatRoomId}/messages/suggest_reply`, {
+            params: { limit: limit } // 指定されたメッセージ数をパラメータとして送信
+        });
+        return response.data;
     } catch (error) {
         console.error('Error fetching suggested reply:', error);
         throw error;
     }
 };
+
 /**
  * メッセージを削除する関数
  * @param chatRoomId - チャットルームのID
