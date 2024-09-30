@@ -18,10 +18,13 @@ const ChatWindow: React.FC = () => {
     const [messageContent, setMessageContent] = useState('');
     const [suggestedReply, setSuggestedReply] = useState<string | null>(null);
     const [messageLimit, setMessageLimit] = useState(1); // ユーザーが指定するメッセージ数
+    const [chatRoomDetails, setChatRoomDetails] = useState<{ name: string; users: Array<{ id: number; name: string }> } | null>(null);
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000';
 
     useEffect(() => {
         if (currentChatRoom) {
             dispatch(fetchMessages(currentChatRoom.id));
+            fetchChatRoomDetails(currentChatRoom.id.toString());
         }
     }, [currentChatRoom, dispatch]);
 
@@ -83,6 +86,34 @@ const ChatWindow: React.FC = () => {
             }
         }
     };
+    const fetchChatRoomDetails = async (roomId: string) => {
+        try {
+            const res = await fetch(`${API_BASE_URL}/chat_rooms/${roomId}`, {
+                method: 'GET',
+                credentials: 'include', // セッション情報を含める
+            });
+            if (!res.ok) {
+                throw new Error('チャットルームの詳細取得に失敗しました。');
+            }
+            const data = await res.json();
+            setChatRoomDetails({
+                name: data.chat_room.name,
+                users: data.users.map((user: any) => ({
+                    id: user.id,
+                    name: user.name,
+                })),
+            });
+        } catch (error) {
+            console.error('Error fetching chat room details:', error);
+            toast({
+                title: 'チャットルームの詳細取得に失敗しました。',
+                status: 'error',
+                duration: 5000,
+                isClosable: true,
+            });
+        }
+    };
+
 
     // 新たなメッセージが追加された時の処理
     useEffect(() => {
@@ -111,20 +142,20 @@ const ChatWindow: React.FC = () => {
 
     return (
         <Box p={4} borderWidth="1px" borderRadius="lg" width="100%">
-            <Text fontSize="xl" mb={4}>
-                {currentChatRoom?.name}
-            </Text>
-
-            {/* ユーザーが何個前までのメッセージを使用するか選択できるドロップダウン */}
-            <Box mb={4}>
-                <Text fontWeight="bold">何個前までのメッセージをレコメンドに使用するか選択:</Text>
-                <Select value={messageLimit} onChange={(e) => setMessageLimit(parseInt(e.target.value))}>
-                    <option value={1}>1個前</option>
-                    <option value={3}>3個前</option>
-                    <option value={5}>5個前</option>
-                    <option value={10}>10個前</option>
-                </Select>
-            </Box>
+            {chatRoomDetails ? (
+                <>
+                    <Text fontSize="xl" mb={2}>
+                        {chatRoomDetails.name}
+                    </Text>
+                    <Text fontSize="md" mb={4}>
+                        参加者: {chatRoomDetails.users.map(user => user.name).join(', ')}
+                    </Text>
+                </>
+            ) : (
+                <Text fontSize="xl" mb={4}>
+                    {currentChatRoom?.name || 'チャットルーム'}
+                </Text>
+            )}
 
             <VStack align="start" spacing={2} mb={4}>
                 {messages.map((msg) => (
@@ -145,7 +176,6 @@ const ChatWindow: React.FC = () => {
                     </Box>
                 ))}
             </VStack>
-
 
             {suggestedReply && (
                 <Box mt={4} p={3} bg="blue.50" borderRadius="md">
