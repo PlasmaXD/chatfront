@@ -58,7 +58,7 @@ const LoginPage: React.FC = () => {
                         <form onSubmit={handleLoginSubmit}>
                             <Input
                                 type="text"
-                                placeholder="ユーザーID"
+                                placeholder="ユーザーNAME"
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
                                 mb={4}
@@ -89,7 +89,7 @@ const LoginPage: React.FC = () => {
                         <form onSubmit={handleRegisterSubmit}>
                             <Input
                                 type="text"
-                                placeholder="ユーザーID"
+                                placeholder="ユーザーNAME"
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
                                 mb={4}

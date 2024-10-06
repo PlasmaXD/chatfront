@@ -12,7 +12,17 @@ const ChatRoomCreate: React.FC = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (user1.trim() && user2.trim()) {
-            await createIndividualChatRoom(user1, user2);
+            // ユーザーIDを数値に変換
+            const userId1 = parseInt(user1, 10);
+            const userId2 = parseInt(user2, 10);
+
+            // ユーザーIDが有効な数値であることを確認
+            if (isNaN(userId1) || isNaN(userId2)) {
+                alert('ユーザーIDは有効な数値である必要があります。');
+                return;
+            }
+
+            await createIndividualChatRoom(userId1, userId2);
             dispatch(fetchChatRooms()); // チャットルームのリストを再取得
             setUser1('');
             setUser2('');
